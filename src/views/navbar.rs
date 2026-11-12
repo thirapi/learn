@@ -14,14 +14,13 @@ pub fn render(state: &State, kit: &Kit) -> El {
         .radius(kit.radius.sm)
         .fill(c.bg_accent)
         .center()
-        .child(text("∑").font(ty.title_sm).color(rune::Color::WHITE));
+        .child(rune::icon(&icons::GRADUATION_CAP, 16.0).color(rune::Color::WHITE));
 
-    let logo_title = row()
-        .center_y()
-        .child(text("Diskrit").font(ty.title_md).color(c.text_strong))
-        .child(text("Learn").font(ty.title_md).color(c.text_accent));
+    let logo_title = text("Learn")
+        .font(ty.title_md)
+        .color(c.text_strong);
 
-    let logo_badge = Badge::new("Informatika")
+    let logo_badge = Badge::new("Platform")
         .variant(BadgeVariant::Accent)
         .standard()
         .build(kit);

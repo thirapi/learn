@@ -54,6 +54,6 @@ pub fn start() {
             ("lab", |s: &mut State| s.active_tab = Tab::Lab),
             ("feynman", |s: &mut State| s.active_tab = Tab::Feynman),
         ],
-        ..AppSpec::new("DiskritLearn", (1160.0, 760.0), State::default, view)
+        ..AppSpec::new("Learn", (1160.0, 760.0), State::default, view)
     });
 }

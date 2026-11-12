@@ -1,9 +1,9 @@
-# DiskritLearn 🚀
-> Platform Belajar Matematika Diskrit Interaktif berbasis **"Learn How to Learn"** & Framework UI GPU **`anomalyco/rune`** (OpenCode).
+# Learn 🚀
+> Platform Belajar Interaktif berbasis **"Learn How to Learn"** (Cognitive Science) & Framework UI GPU **`anomalyco/rune`** (OpenCode).
 
-Dibuat khusus untuk mahasiswa Teknik Informatika (berdasarkan kurikulum Matematika Diskrit UDINUS, Pak Erwin Hidayat).
+Dibuat dengan arsitektur modular untuk mendukung berbagai kurikulum sains & komputasi (dimulai dari kurikulum lengkap Matematika Diskrit UDINUS, Pak Erwin Hidayat).
 
-![DiskritLearn Preview](preview.png)
+![Learn Preview](preview.png)
 
 ---
 

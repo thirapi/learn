@@ -19,7 +19,7 @@ cat << 'EOF' > "$OUT_DIR/index.html"
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DiskritLearn • Platform Belajar Matematika Diskrit (Rune WebGPU)</title>
+  <title>Learn • Platform Belajar Interaktif (Rune WebGPU)</title>
   <style>
     html, body {
       margin: 0;
@@ -55,7 +55,7 @@ cat << 'EOF' > "$OUT_DIR/index.html"
 <body>
   <div id="status">
     <div class="spinner"></div>
-    <div>Memuat DiskritLearn (WebAssembly + WebGPU)...</div>
+    <div>Memuat Learn (WebAssembly + WebGPU)...</div>
   </div>
   <script type="module">
     const ver = Date.now();
