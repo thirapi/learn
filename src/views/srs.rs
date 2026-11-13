@@ -1,5 +1,5 @@
-use rune::{El, col, row, text, ScrollSpec};
-use rune_kit::{Badge, BadgeVariant, Button, ButtonVariant, Card, ControlSize, Kit};
+use rune::{El, col, el, row, text, ScrollSpec};
+use rune_kit::{Button, ButtonVariant, ControlSize, Kit};
 use crate::icons;
 use crate::state::State;
 use crate::theme;
@@ -27,74 +27,87 @@ pub fn render(state: &State, kit: &Kit) -> El {
         .font(ty.caption)
         .color(c.text_muted);
 
-    let header = col().w_full().gap(8.0).pb(12.0).child(srs_badge).child(title).child(subtitle);
+    let header = col().w_full().gap(8.0).pb(12.0).child(row().child(srs_badge)).child(title).child(subtitle);
 
     let total_cards = state.flashcards.len();
     let current_idx = state.current_card_idx.min(total_cards.saturating_sub(1));
     let card = &state.flashcards[current_idx];
 
-    let counter_badge = Badge::new(format!("Kartu {} dari {}", current_idx + 1, total_cards))
-        .variant(BadgeVariant::Accent)
-        .standard()
-        .build(kit);
+    let counter = text(format!("Kartu {} dari {}", current_idx + 1, total_cards))
+        .font(ty.small_medium)
+        .color(c.text_muted);
 
-    let mod_badge = Badge::new(format!("Pertemuan {}", card.module_number))
-        .variant(BadgeVariant::Subtle)
-        .standard()
-        .build(kit);
-
-    let topic_text = text(card.topic)
-        .font(ty.title_sm)
-        .color(c.text_strong);
-
-    let meta_row = row()
+    // Thin progress bar through the deck.
+    let deck_frac = (current_idx + 1) as f32 / total_cards.max(1) as f32;
+    let deck_bar = row()
         .w_full()
-        .center_y()
-        .justify_between()
-        .flex_wrap()
-        .gap(8.0)
-        .child(row().center_y().gap(8.0).child(counter_badge).child(mod_badge))
-        .child(topic_text);
+        .h(4.0)
+        .radius(2.0)
+        .fill(c.layer_03)
+        .child(el().h(4.0).radius(2.0).fill(c.bg_accent).w_frac(deck_frac));
 
-    // Flashcard Surface using rune-kit Card & Vector Icons
+    let meta_row = col().w_full().gap(8.0).child(counter).child(deck_bar);
+
+    // Flashcard surface: a raised card with the question/answer as the hero text.
     let is_flipped = state.card_flipped;
 
-    let card_widget = if !is_flipped {
-        Card::new()
-            .accent(c.icon_base)
-            .title(format!("Pertanyaan: {}", card.topic), Some(&icons::HELP))
-            .description(card.question)
+    let side_label = |glyph: &'static rune::Icon, label: String, color: rune::Color| {
+        row()
+            .center_y()
+            .gap(6.0)
+            .child(rune::icon(glyph, 13.0).color(color))
+            .child(text(label).font(ty.caption_medium).color(color))
+    };
+
+    let topic_line = format!("Pertemuan {} • {}", card.module_number, card.topic);
+
+    let mut card_body = col().w_full().gap(14.0);
+    if !is_flipped {
+        card_body = card_body
+            .child(side_label(&icons::HELP, format!("PERTANYAAN • {}", topic_line.to_uppercase()), c.text_accent))
+            .child(text(card.question).font(ty.title_md).color(c.text_strong).wrap().w_full())
             .child(
                 row()
                     .center_y()
                     .gap(6.0)
-                    .pt(8.0)
-                    .child(Badge::new(format!("Petunjuk: {}", card.hint)).variant(BadgeVariant::Subtle).build(kit))
+                    .child(rune::icon(&icons::BULB, 13.0).color(c.warning.icon))
+                    .child(text(format!("Petunjuk: {}", card.hint)).font(ty.small).color(c.text_muted).wrap().shrink()),
             )
-            .action(
-                Button::new("Buka & Lihat Jawaban")
-                    .icon(&icons::REFRESH)
-                    .variant(ButtonVariant::Contrast)
-                    .control_size(ControlSize::Large)
-                    .on_press(|s: &mut State| s.card_flipped = true)
-                    .build(kit)
-            )
-            .build(kit)
+            .child(
+                row().pt(6.0).child(
+                    Button::new("Lihat Jawaban")
+                        .icon(&icons::REFRESH)
+                        .variant(ButtonVariant::Contrast)
+                        .control_size(ControlSize::Large)
+                        .on_press(|s: &mut State| s.card_flipped = true)
+                        .build(kit),
+                ),
+            );
     } else {
-        Card::new()
-            .accent(c.success.icon)
-            .title(format!("Kunci Jawaban: {}", card.topic), Some(&icons::CIRCLE_CHECK))
-            .description(card.answer)
-            .action(
-                Button::new("Balik ke Pertanyaan")
-                    .icon(&icons::REFRESH)
-                    .variant(ButtonVariant::Neutral)
-                    .control_size(ControlSize::Large)
-                    .on_press(|s: &mut State| s.card_flipped = false)
-                    .build(kit)
-            )
-            .build(kit)
-    };
+        card_body = card_body
+            .child(side_label(&icons::CIRCLE_CHECK, format!("JAWABAN • {}", topic_line.to_uppercase()), c.success.fg))
+            .child(text(card.answer).font(ty.body).color(c.text_base).wrap().w_full())
+            .child(
+                row().pt(6.0).child(
+                    Button::new("Balik ke Pertanyaan")
+                        .icon(&icons::REFRESH)
+                        .variant(ButtonVariant::Neutral)
+                        .control_size(ControlSize::Regular)
+                        .on_press(|s: &mut State| s.card_flipped = false)
+                        .build(kit),
+                ),
+            );
+    }
+
+    let card_widget = col()
+        .w_full()
+        .min_h(240.0)
+        .padding(28.0)
+        .radius(kit.radius.xl)
+        .fill(c.layer_01)
+        .border(1.0, if is_flipped { c.success.icon.alpha(0.5) } else { c.border_base })
+        .box_shadow(theme::soft_card_shadow(state.dark_mode))
+        .child(card_body);
 
     // SRS Action buttons with vector icons
     let cid = card.id;
@@ -167,7 +180,13 @@ pub fn render(state: &State, kit: &Kit) -> El {
             .build(kit);
 
         let next_btn = Button::new("Kartu Berikutnya")
-            .icon(&icons::ARROW_RIGHT)
+            .label_with(|style, color| {
+                row()
+                    .center_y()
+                    .gap(6.0)
+                    .child(text("Kartu Berikutnya").font(style).color(color))
+                    .child(rune::icon(&icons::ARROW_RIGHT, 14.0).color(color))
+            })
             .variant(ButtonVariant::Neutral)
             .control_size(ControlSize::Regular)
             .on_press(|s: &mut State| {
@@ -204,8 +223,8 @@ pub fn render(state: &State, kit: &Kit) -> El {
     let center_wrapper = col()
         .w_full()
         .items_center()
-        .px(24.0)
-        .py(20.0)
+        .px(32.0)
+        .py(28.0)
         .child(srs_column);
 
     col()

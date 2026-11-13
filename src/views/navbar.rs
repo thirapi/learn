@@ -1,5 +1,5 @@
 use rune::{El, el, row, text};
-use rune_kit::{Badge, BadgeVariant, Button, ButtonVariant, ControlSize, IconButton, IconButtonVariant, Kit, ProgressCircle, SegmentedControl};
+use rune_kit::{Button, ButtonVariant, ControlSize, IconButton, IconButtonVariant, Kit, ProgressCircle, SegmentedControl};
 use crate::icons;
 use crate::state::{State, Tab};
 use crate::theme;
@@ -20,17 +20,11 @@ pub fn render(state: &State, kit: &Kit) -> El {
         .font(ty.title_md)
         .color(c.text_strong);
 
-    let logo_badge = Badge::new("Platform")
-        .variant(BadgeVariant::Accent)
-        .standard()
-        .build(kit);
-
     let mut brand_box = row()
         .center_y()
         .gap(10.0)
         .child(logo_icon)
-        .child(logo_title)
-        .child(logo_badge);
+        .child(logo_title);
 
     // Sidebar toggle button with vector icon
     if state.active_tab == Tab::Belajar {
@@ -68,33 +62,29 @@ pub fn render(state: &State, kit: &Kit) -> El {
     let pct = state.progress_percentage();
     let pct_f32 = ((pct / 100.0).clamp(0.0, 1.0)) as f32;
 
-    let streak_badge = row()
-        .center_y()
-        .gap(5.0)
-        .h(22.0)
-        .px(8.0)
-        .radius(kit.radius.xs)
-        .fill(c.layer_02)
-        .border(0.5, c.border_base)
+    // Status pills share one shape: icon/ring + short label.
+    let pill = || {
+        row()
+            .center_y()
+            .gap(6.0)
+            .h(28.0)
+            .px(10.0)
+            .radius(14.0)
+            .fill(c.layer_02)
+    };
+
+    let streak_badge = pill()
         .child(rune::icon(&icons::FLAME, 13.0).color(c.warning.icon))
-        .child(text(format!("{} Hari Streak", state.daily_streak)).font(kit.ty.small_medium).color(c.text_base));
+        .child(text(format!("{} hari", state.daily_streak)).font(kit.ty.small_medium).color(c.text_base));
 
-    // Official rune-kit ProgressCircle donut ring
-    let prog_circle = ProgressCircle::new(pct_f32)
-        .size(20.0)
-        .label("Persentase Selesai")
-        .build(kit);
-
-    let prog_badge = Badge::new(format!("{:.0}% Selesai", pct))
-        .variant(BadgeVariant::Subtle)
-        .standard()
-        .build(kit);
-
-    let progress_widget = row()
-        .center_y()
-        .gap(6.0)
-        .child(prog_circle)
-        .child(prog_badge);
+    let progress_widget = pill()
+        .child(
+            ProgressCircle::new(pct_f32)
+                .size(14.0)
+                .label("Persentase Selesai")
+                .build(kit),
+        )
+        .child(text(format!("{:.0}% selesai", pct)).font(kit.ty.small_medium).color(c.text_base));
 
     let theme_icon = if state.dark_mode { &icons::SUN } else { &icons::MOON };
     let theme_btn = IconButton::new(theme_icon)
@@ -108,7 +98,7 @@ pub fn render(state: &State, kit: &Kit) -> El {
 
     let right_box = row()
         .center_y()
-        .gap(10.0)
+        .gap(8.0)
         .child(streak_badge)
         .child(progress_widget)
         .child(theme_btn);

@@ -27,7 +27,7 @@ pub fn render(state: &State, kit: &Kit) -> El {
         .font(ty.caption)
         .color(c.text_muted);
 
-    let header = col().w_full().gap(8.0).pb(12.0).child(feynman_badge).child(title).child(subtitle);
+    let header = col().w_full().gap(8.0).pb(12.0).child(row().child(feynman_badge)).child(title).child(subtitle);
 
     let module = state.current_module();
     let chunk = state.current_chunk();
@@ -42,13 +42,13 @@ pub fn render(state: &State, kit: &Kit) -> El {
     // 2. Key Concepts Checklist using Vector Check Icons
     let mut checklist_col = col().w_full().gap(8.0).pt(6.0);
     for concept in chunk.key_concepts {
-        let check_icon = rune::icon(&icons::CHECK, 16.0).color(c.success.icon);
+        let check_icon = rune::el().size(16.0, 16.0).center().child(rune::el().size(6.0, 6.0).radius(3.0).fill(c.success.icon));
         let row_el = row()
             .w_full()
             .center_y()
             .gap(10.0)
             .child(check_icon)
-            .child(text(*concept).font(ty.body_medium).color(c.text_strong));
+            .child(text(*concept).font(ty.body).color(c.text_base));
         checklist_col = checklist_col.child(row_el);
     }
 
@@ -95,7 +95,7 @@ pub fn render(state: &State, kit: &Kit) -> El {
     // Responsive Inner Container (Max Width 860px)
     let feynman_column = col()
         .w_full()
-        .max_w(860.0)
+        .max_w(720.0)
         .gap(22.0)
         .child(header)
         .child(target_card)
@@ -108,8 +108,8 @@ pub fn render(state: &State, kit: &Kit) -> El {
     let center_wrapper = col()
         .w_full()
         .items_center()
-        .px(24.0)
-        .py(20.0)
+        .px(32.0)
+        .py(28.0)
         .child(feynman_column);
 
     col()

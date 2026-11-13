@@ -11,7 +11,7 @@ pub fn render(state: &State, kit: &Kit) -> El {
     let ty = theme::typography();
 
     // 1. Sidebar Toggle Banner (if collapsed)
-    let mut top_header = col().w_full().gap(10.0).pb(12.0);
+    let mut top_header = col().w_full().gap(10.0);
 
     if !state.sidebar_open {
         let expand_btn = Button::new("Buka Kurikulum Perkuliahan")
@@ -100,46 +100,51 @@ pub fn render(state: &State, kit: &Kit) -> El {
     // 2. Interactive Learning Mode Selector (Intuisi vs Formal)
     let is_diffuse = state.is_diffuse_mode;
 
-    let diffuse_btn = row()
-        .px(16.0)
-        .py(10.0)
-        .radius(kit.radius.sm)
-        .fill(if is_diffuse { c.bg_accent } else { Color::TRANSPARENT })
-        .hover(if is_diffuse { c.bg_accent } else { c.layer_02 })
-        .center()
-        .gap(8.0)
-        .child(rune::icon(&icons::BULB, 15.0).color(if is_diffuse { Color::WHITE } else { c.text_base }))
-        .child(
-            text("Mode Intuisi (Analogi & Pola Pikir)")
-                .font(if is_diffuse { ty.body_medium } else { ty.body })
-                .color(if is_diffuse { Color::WHITE } else { c.text_base })
-        )
-        .on_press(|s: &mut State| s.is_diffuse_mode = true);
+    let mode_btn = |active: bool, glyph: &'static rune::Icon, label: &'static str| {
+        row()
+            .h(32.0)
+            .px(14.0)
+            .radius(kit.radius.sm)
+            .fill(if active { c.bg_accent } else { Color::TRANSPARENT })
+            .hover(if active { c.bg_accent } else { c.layer_02 })
+            .center()
+            .gap(6.0)
+            .child(rune::icon(glyph, 14.0).color(if active { Color::WHITE } else { c.text_muted }))
+            .child(
+                text(label)
+                    .font(kit.ty.ui_medium)
+                    .color(if active { Color::WHITE } else { c.text_muted }),
+            )
+    };
 
-    let focused_btn = row()
-        .px(16.0)
-        .py(10.0)
-        .radius(kit.radius.sm)
-        .fill(if !is_diffuse { c.bg_accent } else { Color::TRANSPARENT })
-        .hover(if !is_diffuse { c.bg_accent } else { c.layer_02 })
-        .center()
-        .gap(8.0)
-        .child(rune::icon(&icons::COMPASS, 15.0).color(if !is_diffuse { Color::WHITE } else { c.text_base }))
-        .child(
-            text("Mode Formal (Definisi & Notasi Matematis)")
-                .font(if !is_diffuse { ty.body_medium } else { ty.body })
-                .color(if !is_diffuse { Color::WHITE } else { c.text_base })
-        )
+    let diffuse_btn = mode_btn(is_diffuse, &icons::BULB, "Intuisi")
+        .on_press(|s: &mut State| s.is_diffuse_mode = true);
+    let focused_btn = mode_btn(!is_diffuse, &icons::COMPASS, "Formal")
         .on_press(|s: &mut State| s.is_diffuse_mode = false);
+
+    let mode_hint = text(if is_diffuse {
+        "Analogi & pola pikir"
+    } else {
+        "Definisi & notasi matematis"
+    })
+    .font(ty.caption)
+    .color(c.text_muted);
 
     let mode_switcher = row()
         .w_full()
-        .padding(4.0)
-        .radius(kit.radius.md)
-        .fill(c.layer_01)
-        .border(1.0, c.border_base)
-        .child(diffuse_btn.grow(1.0))
-        .child(focused_btn.grow(1.0));
+        .center_y()
+        .gap(12.0)
+        .child(
+            row()
+                .padding(3.0)
+                .gap(2.0)
+                .radius(kit.radius.md)
+                .fill(c.layer_01)
+                .border(1.0, c.border_base)
+                .child(diffuse_btn)
+                .child(focused_btn),
+        )
+        .child(mode_hint);
 
     // 3. Modern Reading Container powered by rune-kit Note & Card
     let current_content = if state.is_diffuse_mode {
@@ -149,9 +154,9 @@ pub fn render(state: &State, kit: &Kit) -> El {
     };
 
     let callout_intro = if is_diffuse {
-        "> [!tip] Mode Intuisi (Diffuse Mode)\n> Pahami ide inti dan pola pikir menggunakan analogi dunia nyata di bawah ini sebelum mendalami notasi formal matematika."
+        "> [!tip]\n> **Mode Intuisi (Diffuse Mode).** Pahami ide inti dan pola pikir menggunakan analogi dunia nyata di bawah ini sebelum mendalami notasi formal matematika."
     } else {
-        "> [!note] Mode Formal (Focused Mode)\n> Landasan teori matematika ketat: perhatikan himpunan, kuantor, dan pembuktian matematis secara seksama."
+        "> [!note]\n> **Mode Formal (Focused Mode).** Landasan teori matematika ketat: perhatikan himpunan, kuantor, dan pembuktian matematis secara seksama."
     };
 
     let combined_doc = format!("{}\n\n{}", callout_intro, current_content);
@@ -163,7 +168,6 @@ pub fn render(state: &State, kit: &Kit) -> El {
             if is_diffuse { "Pemahaman Intuitif & Analogi Nyata" } else { "Landasan Teori Formal & Notasi Simbolik" },
             Some(&icons::GRADUATION_CAP),
         )
-        .description(format!("Topik {}: {}", chunk.id, chunk.title))
         .child(note_content)
         .build(kit);
 
@@ -356,7 +360,7 @@ pub fn render(state: &State, kit: &Kit) -> El {
     // Responsive Inner Container (Max Width 860px)
     let read_column = col()
         .w_full()
-        .max_w(860.0)
+        .max_w(720.0)
         .gap(22.0)
         .child(top_header)
         .child(mode_switcher)
@@ -369,8 +373,8 @@ pub fn render(state: &State, kit: &Kit) -> El {
     let center_wrapper = col()
         .w_full()
         .items_center()
-        .px(24.0)
-        .py(20.0)
+        .px(32.0)
+        .py(28.0)
         .child(read_column);
 
     col()

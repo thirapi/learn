@@ -1,6 +1,6 @@
 use rune::{El, el, col, row, text, Color, Tx};
 use rune_kit::{
-    Badge, BadgeVariant, Button, ButtonVariant, ControlSize, Kit, ProgressCircle,
+    Button, ButtonVariant, ControlSize, Kit,
     Sidebar, SidebarRow, SidebarSection,
 };
 use crate::icons;
@@ -32,51 +32,34 @@ pub fn render(state: &State, kit: &Kit) -> El {
         .child(title)
         .child(close_btn);
 
-    let pct = state.progress_percentage();
-    let pct_f32 = ((pct / 100.0).clamp(0.0, 1.0)) as f32;
+    let total_chunks: usize = state.modules.iter().map(|m| m.chunks.len()).sum();
+    let done_chunks = state.completed_chunks.len();
 
-    let prog_circle = ProgressCircle::new(pct_f32)
-        .size(24.0)
-        .label("Progres Selesai")
-        .build(kit);
-
-    let subtitle = text("7 Modul • 21 Topik Mikro")
-        .font(ty.caption)
-        .color(c.text_muted);
-
-    let progress_box = row()
+    let course_box = col()
         .w_full()
-        .center_y()
-        .justify_between()
+        .gap(2.0)
         .px(10.0)
-        .py(8.0)
-        .radius(kit.radius.sm)
-        .fill(c.layer_01)
-        .border(1.0, c.border_base)
+        .py(10.0)
+        .radius(kit.radius.md)
+        .fill(c.layer_02)
+        .child(text("Matematika Diskrit").font(ty.small_medium).color(c.text_strong))
         .child(
-            row()
-                .center_y()
-                .gap(8.0)
-                .child(prog_circle)
-                .child(
-                    col()
-                        .child(text(format!("{:.0}% Selesai", pct)).font(ty.caption_medium).color(c.text_strong))
-                        .child(subtitle)
-                )
-        )
-        .child(
-            Badge::new("Aktif")
-                .variant(BadgeVariant::Accent)
-                .standard()
-                .build(kit)
+            text(format!(
+                "{} pertemuan • {} dari {} topik selesai",
+                state.modules.len(),
+                done_chunks,
+                total_chunks
+            ))
+            .font(ty.caption)
+            .color(c.text_muted),
         );
 
     let header_box = col()
         .w_full()
-        .gap(8.0)
-        .pb(8.0)
+        .gap(10.0)
+        .pb(10.0)
         .child(title_row)
-        .child(progress_box);
+        .child(course_box);
 
     // 2. Official rune-kit Sidebar with SidebarSection & SidebarRow
     let mut sidebar_widget = Sidebar::new()
@@ -87,7 +70,6 @@ pub fn render(state: &State, kit: &Kit) -> El {
         let is_selected_module = state.active_module_idx == m_idx;
 
         let mut section = SidebarSection::new(format!("P{} • {}", module.number, module.title))
-            .count(module.chunks.len())
             .collapsed(!is_selected_module)
             .on_toggle(move |s: &mut State, _tx: &mut Tx| {
                 s.active_module_idx = m_idx;
@@ -123,7 +105,7 @@ pub fn render(state: &State, kit: &Kit) -> El {
 
             let row_item = SidebarRow::new(chunk.title)
                 .avatar(status_badge)
-                .detail(chunk.reading_time)
+                .subtitle(chunk.reading_time)
                 .selected(is_selected_chunk)
                 .on_select(move |s: &mut State, _tx: &mut Tx| {
                     s.active_module_idx = m_idx;

@@ -1,5 +1,5 @@
 use rune::{El, col, el, row, text, ScrollSpec};
-use rune_kit::{Badge, BadgeVariant, Button, ButtonVariant, Card, ControlSize, Kit, SegmentedControl, Switch};
+use rune_kit::{Badge, BadgeVariant, Card, Kit, SegmentedControl, Switch};
 use crate::icons;
 use crate::state::State;
 use crate::theme;
@@ -27,7 +27,7 @@ pub fn render(state: &State, kit: &Kit) -> El {
         .font(ty.caption)
         .color(c.text_muted);
 
-    let header = col().w_full().gap(8.0).pb(8.0).child(lab_badge).child(title).child(subtitle);
+    let header = col().w_full().gap(8.0).pb(8.0).child(row().child(lab_badge)).child(title).child(subtitle);
 
     // 1. Truth Table Simulator with rune-kit Card & Switch
     let p_switch = Switch::new(state.truth_p)
@@ -45,7 +45,7 @@ pub fn render(state: &State, kit: &Kit) -> El {
     let toggles_row = row().w_full().gap(24.0).flex_wrap().center_y().child(p_switch).child(q_switch);
 
     let op_ctrl = SegmentedControl::new(
-        &["AND (∧)", "OR (∨)", "IF-THEN (→)", "IFF (↔)", "XOR (⊕)"],
+        &["AND ∧", "OR ∨", "IF-THEN →", "IFF ↔", "XOR"],
         Some(state.truth_op),
     )
     .width(None)
@@ -71,25 +71,21 @@ pub fn render(state: &State, kit: &Kit) -> El {
         .description(format!("Rumus: {} • {}", formula_name, rule_desc))
         .build(kit);
 
-    // Dynamic 4-row Truth Table
+    // Dynamic 4-row Truth Table (fixed column widths, current row highlighted)
+    let cell = |w: f32, e: El| el().w(w).child(e);
     let table_header = row()
         .w_full()
-        .padding(8.0)
+        .px(12.0)
+        .py(8.0)
         .radius(kit.radius.sm)
         .fill(c.layer_02)
-        .child(el().w(80.0).child(text("Nilai p").font(ty.caption_medium).color(c.text_muted)))
-        .child(el().w(80.0).child(text("Nilai q").font(ty.caption_medium).color(c.text_muted)))
-        .child(el().w(140.0).child(text(formula_name).font(ty.caption_medium).color(c.text_muted)))
-        .child(el().grow(1.0).child(text("Status").font(ty.caption_medium).color(c.text_muted)));
+        .child(cell(72.0, text("p").font(ty.caption_medium).color(c.text_muted)))
+        .child(cell(72.0, text("q").font(ty.caption_medium).color(c.text_muted)))
+        .child(cell(140.0, text(formula_name).font(ty.caption_medium).color(c.text_muted)));
 
-    let rows_data = [
-        (true, true),
-        (true, false),
-        (false, true),
-        (false, false),
-    ];
+    let rows_data = [(true, true), (true, false), (false, true), (false, false)];
 
-    let mut table_col = col().w_full().gap(4.0).child(table_header);
+    let mut table_col = col().w_full().gap(2.0).child(table_header);
 
     for (rp, rq) in rows_data {
         let is_current = (rp == p) && (rq == q);
@@ -100,22 +96,28 @@ pub fn render(state: &State, kit: &Kit) -> El {
             3 => rp == rq,
             _ => rp ^ rq,
         };
+        let tf = |v: bool| if v { "T" } else { "F" };
+        let val_font = if is_current { ty.body_medium } else { ty.body };
 
-        let row_el = row()
+        let mut row_el = row()
             .w_full()
-            .px(8.0)
-            .py(7.0)
-            .radius(kit.radius.xs)
-            .fill(if is_current { c.layer_03 } else { rune::Color::TRANSPARENT })
+            .px(12.0)
+            .py(6.0)
+            .radius(kit.radius.sm)
+            .fill(if is_current { c.bg_accent.alpha(0.10) } else { rune::Color::TRANSPARENT })
+            .border(1.0, if is_current { c.bg_accent.alpha(0.35) } else { rune::Color::TRANSPARENT })
             .center_y()
-            .child(el().w(80.0).child(text(if rp { "T" } else { "F" }).font(ty.body_medium).color(c.text_base)))
-            .child(el().w(80.0).child(text(if rq { "T" } else { "F" }).font(ty.body_medium).color(c.text_base)))
-            .child(el().w(140.0).child(
+            .child(cell(72.0, text(tf(rp)).font(val_font).color(c.text_base)))
+            .child(cell(72.0, text(tf(rq)).font(val_font).color(c.text_base)))
+            .child(cell(
+                140.0,
                 Badge::new(if row_res { "TRUE (1)" } else { "FALSE (0)" })
                     .variant(if row_res { BadgeVariant::Accent } else { BadgeVariant::Neutral })
-                    .build(kit)
-            ))
-            .child(el().grow(1.0).child(text(if is_current { "◀ Baris Terpilih" } else { "" }).font(ty.caption_medium).color(c.text_accent)));
+                    .build(kit),
+            ));
+        if is_current {
+            row_el = row_el.child(text("Input saat ini").font(ty.caption_medium).color(c.text_accent));
+        }
 
         table_col = table_col.child(row_el);
     }
@@ -132,27 +134,57 @@ pub fn render(state: &State, kit: &Kit) -> El {
         )
         .build(kit);
 
-    // 2. Relation Property Tester on {1, 2, 3}
-    let mut grid_col = col().gap(6.0);
+    // 2. Relation Property Tester on {1, 2, 3}: a clickable boolean matrix M_R
+    const CELL: f32 = 44.0;
+    let head = |t: String| {
+        el().size(CELL, 28.0).center().child(text(t).font(ty.caption_medium).color(c.text_muted))
+    };
+    let mut header_row = row().gap(6.0).child(el().size(28.0, 28.0));
+    for b in 1..=3 {
+        header_row = header_row.child(head(format!("{}", b)));
+    }
+    let mut grid_col = col().gap(6.0).child(header_row);
     for a in 1..=3 {
-        let mut grid_row = row().gap(6.0);
+        let mut grid_row = row()
+            .gap(6.0)
+            .center_y()
+            .child(el().size(28.0, CELL).center().child(text(format!("{}", a)).font(ty.caption_medium).color(c.text_muted)));
         for b in 1..=3 {
             let has_pair = state.rel_pairs.contains(&(a, b));
-            let pair_btn = Button::new(format!("({}, {})", a, b))
-                .variant(if has_pair { ButtonVariant::Submit } else { ButtonVariant::Neutral })
-                .control_size(ControlSize::Small)
+            let pair_cell = el()
+                .size(CELL, CELL)
+                .radius(kit.radius.sm)
+                .fill(if has_pair { c.bg_accent } else { c.layer_01 })
+                .border(1.0, if has_pair { c.bg_accent } else { c.border_strong })
+                .hover(if has_pair { c.bg_accent.alpha(0.85) } else { c.layer_02 })
+                .center()
+                .role("button")
+                .label(format!("Pasangan ({}, {})", a, b))
+                .child(
+                    text(if has_pair { "1" } else { "0" })
+                        .font(ty.body_medium)
+                        .color(if has_pair { rune::Color::WHITE } else { c.text_faint }),
+                )
                 .on_press(move |s: &mut State| {
-                    if s.rel_pairs.contains(&(a, b)) {
-                        s.rel_pairs.remove(&(a, b));
-                    } else {
+                    if !s.rel_pairs.remove(&(a, b)) {
                         s.rel_pairs.insert((a, b));
                     }
-                })
-                .build(kit);
-            grid_row = grid_row.child(pair_btn);
+                });
+            grid_row = grid_row.child(pair_cell);
         }
         grid_col = grid_col.child(grid_row);
     }
+
+    let mut pairs: Vec<_> = state.rel_pairs.iter().copied().collect();
+    pairs.sort();
+    let pairs_text = if pairs.is_empty() {
+        "R = ∅".to_string()
+    } else {
+        format!(
+            "R = {{{}}}",
+            pairs.iter().map(|(a, b)| format!("({}, {})", a, b)).collect::<Vec<_>>().join(", ")
+        )
+    };
 
     let is_ref = state.is_rel_reflexive();
     let is_sym = state.is_rel_symmetric();
@@ -181,28 +213,28 @@ pub fn render(state: &State, kit: &Kit) -> El {
         .child(row().w_full().gap(8.0).flex_wrap().child(p1.grow(1.0).shrink()).child(p2.grow(1.0).shrink()))
         .child(row().w_full().gap(8.0).flex_wrap().child(p3.grow(1.0).shrink()).child(p4.grow(1.0).shrink()));
 
-    let relation_content = row()
+    let matrix_box = col()
+        .gap(8.0)
+        .child(text("Matriks M_R (baris a, kolom b) — klik sel untuk mengubah").font(ty.caption).color(c.text_muted))
+        .child(grid_col)
+        .child(text(pairs_text).font(ty.small).color(c.text_base).wrap().w_full());
+
+    let relation_content = col()
         .w_full()
         .gap(16.0)
-        .flex_wrap()
-        .child(
-            col().gap(6.0)
-                .child(text("Matriks R (Klik untuk toggle):").font(ty.caption).color(c.text_muted))
-                .child(grid_col)
-        )
-        .child(prop_grid.grow(1.0).shrink());
+        .child(matrix_box)
+        .child(prop_grid);
 
     let relation_card = Card::new()
         .accent(c.icon_base)
         .title("2. Penguji 4 Sifat Relasi Biner Himpunan A = {1, 2, 3}", Some(&icons::GRID_3X3))
-        .description("Klik tombol pasangan terurut (a, b) untuk menambah atau menghapus anggota himpunan relasi R.")
         .child(relation_content)
         .build(kit);
 
     // Responsive Inner Container (Max Width 860px)
     let lab_column = col()
         .w_full()
-        .max_w(860.0)
+        .max_w(720.0)
         .gap(22.0)
         .child(header)
         .child(truth_table_card)
@@ -213,8 +245,8 @@ pub fn render(state: &State, kit: &Kit) -> El {
     let center_wrapper = col()
         .w_full()
         .items_center()
-        .px(24.0)
-        .py(20.0)
+        .px(32.0)
+        .py(28.0)
         .child(lab_column);
 
     col()
